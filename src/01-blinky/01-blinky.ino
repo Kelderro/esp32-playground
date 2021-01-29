@@ -1,5 +1,5 @@
 // Arduino pin number of the blue LED
-const int ledPin = A12;
+const byte ledPin = A12;
 
 void setup() {
   // Set the LED pin to OUTPUT as we want to provide a signal to the
