@@ -1,4 +1,4 @@
-// Arduino pin number of the blue LED
+// Arduino pin number of the blue LED 
 const byte ledPin = A12;
 
 void setup() {
