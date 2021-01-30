@@ -32,6 +32,9 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v1.1.1
 
+      - name: Config
+        run: arduino-cli config init
+
       - name: Install platform
         run: |
           arduino-cli core update-index
