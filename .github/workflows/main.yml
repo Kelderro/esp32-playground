@@ -33,11 +33,11 @@ jobs:
         uses: arduino/setup-arduino-cli@v1.1.1
 
       - name: Config
-        run: arduino-cli config init
+        run: arduino-cli config init --config-file test.yml
 
       - name: Install platform
         run: |
-          arduino-cli core update-index
+          arduino-cli --config-file test.yml core update-index
           arduino-cli core install espressif:esp32
           
       # Finally, we compile the sketch, using the FQBN that was set
