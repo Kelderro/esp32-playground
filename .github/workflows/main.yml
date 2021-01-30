@@ -35,8 +35,7 @@ jobs:
       - name: Install platform
         run: |
           arduino-cli core update-index
-          arduino-cli board listall
-      # arduino-cli core install ${{ matrix.arduino-platform }}
+          arduino-cli core install espressif:esp32
           
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
