@@ -32,15 +32,13 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v1.1.1
 
-      - name: Config
-        run: arduino-cli config init --config-file test.yml
-
       - name: Install platform
-        run: |
-          arduino-cli --config-file test.yml core update-index
-          arduino-cli core install espressif:esp32
+        run: arduino-cli core update-index
+
+      - name: Add core
+        run: arduino-cli core install arduino:avr
           
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
-      - name: Compile Sketch
-        run: arduino-cli compile --fqbn espressif:esp32:esp32 ./src/01-blinky
+      #- name: Compile Sketch
+      #  run: arduino-cli compile --fqbn espressif:esp32:esp32 ./src/01-blinky
