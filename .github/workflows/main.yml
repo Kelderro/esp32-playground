@@ -32,17 +32,26 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v1.1.1
 
-      - name: Install platform
-        run: arduino-cli core update-index
+      - name: Show content of config file
+        run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
 
-      - name: List all supported boards - before
-        run: arduino-cli board listall
+      - name: Write to adruino cli
+        run: echo test > C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
 
-      - name: Add core
-        run: arduino-cli core install esp32:esp32
+      - name: Show content of config file
+        run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
 
-      - name: List all supported boards - after
-        run: arduino-cli board listall
+      # - name: Install platform
+      #   run: arduino-cli core update-index
+
+      # - name: List all supported boards - before
+      #   run: arduino-cli board listall
+
+      # - name: Add core
+      #   run: arduino-cli core install esp32:esp32
+
+      # - name: List all supported boards - after
+      #   run: arduino-cli board listall
           
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
