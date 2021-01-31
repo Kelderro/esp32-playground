@@ -42,7 +42,7 @@ jobs:
         run: arduino-cli core update-index
 
       - name: Add core
-        run: arduino-cli core install espressif:esp32
+        run: arduino-cli core install esp32:esp32
 
       # - name: List all supported boards - after
       #   run: arduino-cli board listall
