@@ -32,6 +32,9 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v1.1.1
 
+      - name: Init Arduino config
+        run: arduino-cli config init
+
       - name: Show content of config file
         run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
 
