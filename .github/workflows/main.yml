@@ -39,7 +39,7 @@ jobs:
         run: arduino-cli board listall
 
       - name: Add core
-        run: arduino-cli core install arduino:avr
+        run: arduino-cli core install esp32:esp32
 
       - name: List all supported boards - after
         run: arduino-cli board listall
