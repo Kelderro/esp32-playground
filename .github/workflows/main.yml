@@ -33,22 +33,16 @@ jobs:
         uses: arduino/setup-arduino-cli@v1.1.1
 
       - name: Init Arduino config
-        run: arduino-cli config init
+        run: arduino-cli config init --additional-urls https://dl.espressif.com/dl/package_esp32_index.json
 
       - name: Show content of config file
         run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
 
-      - name: Write to adruino cli
-        run: echo test > C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
+      - name: Install platform
+        run: arduino-cli core update-index
 
-      - name: Show content of config file
-        run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
-
-      # - name: Install platform
-      #   run: arduino-cli core update-index
-
-      # - name: List all supported boards - before
-      #   run: arduino-cli board listall
+      - name: List all supported boards
+        run: arduino-cli board listall
 
       # - name: Add core
       #   run: arduino-cli core install esp32:esp32
