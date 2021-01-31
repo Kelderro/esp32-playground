@@ -35,8 +35,14 @@ jobs:
       - name: Install platform
         run: arduino-cli core update-index
 
+      - name: List all supported boards - before
+        run: arduino-cli board listall
+
       - name: Add core
         run: arduino-cli core install arduino:avr
+
+      - name: List all supported boards - after
+        run: arduino-cli board listall
           
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
