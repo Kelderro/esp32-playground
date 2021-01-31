@@ -35,6 +35,9 @@ jobs:
       - name: Init Arduino config
         run: arduino-cli config init --additional-urls https://dl.espressif.com/dl/package_esp32_index.json
 
+      - name: Show content of config file
+        run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
+
       - name: Install platform
         run: arduino-cli core update-index
 
