@@ -35,19 +35,11 @@ jobs:
       - name: Init Arduino config
         run: arduino-cli config init --additional-urls https://dl.espressif.com/dl/package_esp32_index.json
 
-      - name: Show content of config file
-        run: type C:\Users\runneradmin\AppData\Local\Arduino15\arduino-cli.yaml
-
       - name: Install platform
         run: arduino-cli core update-index
 
       - name: Add core
         run: arduino-cli core install esp32:esp32
 
-      # - name: List all supported boards - after
-      #   run: arduino-cli board listall
-          
-      # Finally, we compile the sketch, using the FQBN that was set
-      # in the build matrix.
-      #- name: Compile Sketch
-      #  run: arduino-cli compile --fqbn espressif:esp32:esp32 ./src/01-blinky
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 ./src/01-blinky
