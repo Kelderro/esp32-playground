@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sketch: [01-blinky, 01-blinky]
+        sketch: [01-blinky, 02-blinky-multi-tasking]
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
