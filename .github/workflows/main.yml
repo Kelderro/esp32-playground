@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sketch: [01-blinky, 02-blinky-multi-tasking, 03-bluetooth-server]
+        sketch: [01-blinky, 02-blinky-multi-tasking, 03-bluetooth-server, 04-bluetooth-server-multiconnect ]
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
