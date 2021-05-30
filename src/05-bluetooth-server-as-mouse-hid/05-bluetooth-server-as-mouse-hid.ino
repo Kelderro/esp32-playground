@@ -59,7 +59,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
     }  
 };
 
-void setupBLE(void*) {
+void setupBleTask(void *) {
   // Create the BLE Device
   BLEDevice::init("ESP32 Mouse");
 
@@ -96,10 +96,22 @@ void setupBLE(void*) {
   vTaskDelete(NULL);
 }
 
+void moveMousePointerTask(void *) {
+  const TickType_t xDelay = (10 * 1000) / portTICK_PERIOD_MS;
+
+  for(;;) { // infinite loop
+    Serial.println("Moving mouse!");
+    
+    // Pause the task again for 10 seconds
+    vTaskDelay(xDelay);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
 
-  xTaskCreate(setupBLE, "Setup BLE", 20000, NULL, 5, NULL);
+  xTaskCreate(setupBleTask, "Setup BLE", 20000, NULL, 5, NULL);
+  xTaskCreate(moveMousePointerTask, "Move mouse pointer", 1000, NULL, 1, NULL);
 }
 
 void loop() {
