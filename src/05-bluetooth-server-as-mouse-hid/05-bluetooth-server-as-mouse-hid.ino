@@ -1,111 +1,107 @@
-/*
-    Video: https://www.youtube.com/watch?v=oCMOYS71NIU
-    Based on Neil Kolban example for IDF: https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleNotify.cpp
-    Ported to Arduino ESP32 by Evandro Copercini
-    updated by chegewara
-
-   Create a BLE server that, once we receive a connection, will send periodic notifications.
-   The service advertises itself as: 4fafc201-1fb5-459e-8fcc-c5c9c331914b
-   And has a characteristic of: beb5483e-36e1-4688-b7f5-ea07361b26a8
-
-   The design of creating the BLE server is:
-   1. Create a BLE Server
-   2. Create a BLE Service
-   3. Create a BLE Characteristic on the Service
-   4. Create a BLE Descriptor on the characteristic
-   5. Start the service.
-   6. Start advertising.
-
-   A connect hander associated with the server starts a background task that performs notification
-   every couple of seconds.
-*/
-
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <BLEHIDDevice.h>
 
-BLEServer* pServer = NULL;
-BLECharacteristic* pCharacteristic = NULL;
+BLEHIDDevice* hid = NULL;
+BLEServer *pServer = NULL;
+BLEAdvertising *pAdvertising = NULL;
+
 bool deviceConnected = false;
-bool oldDeviceConnected = false;
-uint32_t value = 0;
 
-// See the following for generating UUIDs:
-// https://www.uuidgenerator.net/
-
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+  // Introduction on HID report descriptor can be found on https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/
+  // Full specificiations can be found in the USB official document (Device Class Definition for Human Interface Devices (HID)) on https://usb.org/sites/default/files/hid1_11.pdf
+  const uint8_t hidReportDescriptor[] = {
+    // Mouse descriptor
+    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
+    0x09, 0x02,        // Usage (Mouse)
+    0xA1, 0x01,        // Collection (Application)
+    0x85, 0x01,        //     Report ID (1)
+    0x09, 0x01,        //   Usage (Pointer)
+    0xA1, 0x00,        //   Collection (Physical)
+    // Set buttons (first 3 bits)
+    0x05, 0x09,        //     Usage Page (Button)
+    0x19, 0x01,        //     Usage Minimum (Button 1)
+    0x29, 0x03,        //     Usage Maximum (Button 3)
+    0x15, 0x00,        //     Logical Minimum (0)
+    0x25, 0x01,        //     Logical Maximum (1)
+    0x95, 0x03,        //     Report Count (3)
+    0x75, 0x01,        //     Report Size (1)
+    0x81, 0x02,        //     Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Padding (5 bits to make a byte 0)
+    0x95, 0x01,        //     Report Count (1)
+    0x75, 0x05,        //     Report Size (5)
+    0x81, 0x03,        //     Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    // Mouse movement. Combine the X and Y together to save memory
+    0x05, 0x01,        //     Usage Page (Generic Desktop Ctrls)
+    0x09, 0x30,        //     Usage (X)
+    0x09, 0x31,        //     Usage (Y)
+    0x15, 0x81,        //     Logical Minimum (-127)
+    0x25, 0x7F,        //     Logical Maximum (127)
+    0x75, 0x08,        //     Report Size (8)
+    0x95, 0x02,        //     Report Count (2)
+    0x81, 0x06,        //     Input (Data,Var,Rel,No Wrap,Linear,Preferred State,No Null Position)
+    0xC0,              //   End Collection
+    0xC0               // End Collection
+  };
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
-      deviceConnected = true;
+      Serial.println("A device is connecting to the ESP32");
+
+      // Restart advertising
       BLEDevice::startAdvertising();
     };
 
     void onDisconnect(BLEServer* pServer) {
-      deviceConnected = false;
-    }
+      Serial.println("A device has been disconnected from the ESP32");
+    }  
 };
 
+void setupBLE(void*) {
+  // Create the BLE Device
+  BLEDevice::init("ESP32 Mouse");
 
+  // Create the BLE Server
+  pServer = BLEDevice::createServer();
+
+  // Set the callback for when a client connect / disconnect
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create a bluetooth low energy human interface device
+  hid = new BLEHIDDevice(pServer);
+
+  // Set manufacturer name
+  hid->manufacturer()->setValue("Kelderro");
+
+  // Set the vendor ID, product ID and Product version (https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/org.bluetooth.characteristic.pnp_id.xml)
+  hid->pnp(0x02, 0xe502, 0xa111, 0x0210);
+
+  // Setting the RemoteWake and NormallyConnectable values (https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/org.bluetooth.characteristic.hid_information.xml)
+  hid->hidInfo(0x00, 0x02);
+
+  hid->reportMap((uint8_t*)hidReportDescriptor, sizeof(hidReportDescriptor));
+
+  hid->startServices();
+
+  // Start advertising
+  pAdvertising = pServer->getAdvertising();
+  pAdvertising->setAppearance(HID_MOUSE);
+  pAdvertising->addServiceUUID(hid->hidService()->getUUID());
+
+  pAdvertising->start();
+
+  // Remove task from RTOS kernels management
+  vTaskDelete(NULL);
+}
 
 void setup() {
   Serial.begin(115200);
 
-  // Create the BLE Device
-  BLEDevice::init("ESP32");
-
-  // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Create a BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID,
-                      BLECharacteristic::PROPERTY_READ   |
-                      BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_NOTIFY |
-                      BLECharacteristic::PROPERTY_INDICATE
-                    );
-
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-  // Create a BLE Descriptor
-  pCharacteristic->addDescriptor(new BLE2902());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-  BLEDevice::startAdvertising();
-  Serial.println("Waiting a client connection to notify...");
+  xTaskCreate(setupBLE, "Setup BLE", 20000, NULL, 5, NULL);
 }
 
 void loop() {
-    // notify changed value
-    if (deviceConnected) {
-        pCharacteristic->setValue((uint8_t*)&value, 4);
-        pCharacteristic->notify();
-        value++;
-        delay(10); // bluetooth stack will go into congestion, if too many packets are sent, in 6 hours test i was able to go as low as 3ms
-    }
-    // disconnecting
-    if (!deviceConnected && oldDeviceConnected) {
-        delay(500); // give the bluetooth stack the chance to get things ready
-        pServer->startAdvertising(); // restart advertising
-        Serial.println("start advertising");
-        oldDeviceConnected = deviceConnected;
-    }
-    // connecting
-    if (deviceConnected && !oldDeviceConnected) {
-        // do stuff here on connecting
-        oldDeviceConnected = deviceConnected;
-    }
+  delay(1000);
 }
