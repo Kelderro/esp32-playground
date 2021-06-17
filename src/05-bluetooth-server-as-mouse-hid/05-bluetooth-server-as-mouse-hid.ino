@@ -62,6 +62,8 @@ class MyServerCallbacks: public BLEServerCallbacks {
 
       connectedCount = pServer->getConnectedCount() + 1;
 
+      String connectedMessage = "A client connected to the service. Total number of connected client(s): " + String(connectedCount);
+
       // Restart advertising
       BLEDevice::startAdvertising();
 
@@ -70,13 +72,15 @@ class MyServerCallbacks: public BLEServerCallbacks {
     };
 
     void onDisconnect(BLEServer* pServer) {
-      Serial.println("A device has been disconnected from the ESP32");
-
       connectedCount = pServer->getConnectedCount();
 
       if (connectedCount == 0) {
+        Serial.println("All clients disconnected from the service. Going back into scan mode.");
+        
         BLE2902* descm = (BLE2902*)inputMouse->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
         descm->setNotifications(false);
+      } else {
+        Serial.println("A client disconnect from the service. Number of connected client(s): " + String(connectedCount));
       }
     }  
 };
@@ -131,7 +135,7 @@ void moveMousePointerTask() {
   const int mouseOffset = 50;
   inputMouse_t c{};
   
-  Serial.print("Moving mouse pointer by " + String(mouseOffset) + " pixels");
+  Serial.print("Start sending a move mouse notification to move the pointer by " + String(mouseOffset) + " pixels.");
   
   c.x = mouseOffset;
   inputMouse->setValue((uint8_t*)&c,sizeof(c));
@@ -139,20 +143,19 @@ void moveMousePointerTask() {
 
   delay(500);
 
-  Serial.print(" and back by " + String(mouseOffset) + " pixels!");
+  Serial.print(" Send instruction to move the mouse back by " + String(mouseOffset) + " pixels!");
 
   c.x = mouseOffset * -1;
   inputMouse->setValue((uint8_t*)&c,sizeof(c));
   inputMouse->notify();
 
-  Serial.println(" Done making the mouse movement");
+  Serial.println(" Done sending mouse movement notifications to " + String(connectedCount) + " client(s)");
 }
 
 void setup() {
   Serial.begin(115200);
 
   xTaskCreate(setupBleTask, "Setup BLE", 20000, NULL, 5, NULL);
-  // xTaskCreate(moveMousePointerTask2, "Move mouse pointer", 500, NULL, 1, NULL);
 }
 
 void loop() {
