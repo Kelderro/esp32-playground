@@ -7,8 +7,7 @@
 BLEHIDDevice* hid = NULL;
 BLEServer *pServer = NULL;
 BLEAdvertising *pAdvertising = NULL;
-
-bool deviceConnected = false;
+BLECharacteristic* inputMouse = NULL;
 
 // Introduction on HID report descriptor can be found on https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/
 // Full specificiations can be found in the USB official document (Device Class Definition for Human Interface Devices (HID)) on https://usb.org/sites/default/files/hid1_11.pdf
@@ -46,16 +45,39 @@ const uint8_t hidReportDescriptor[] = {
   0xC0               // End Collection
 };
 
+// Create struct that will be used to send as a notify message
+typedef struct {
+  uint8_t buttons;
+  int8_t x;
+  int8_t y;
+} inputMouse_t;
+
+static inputMouse_t inputMouse_report{};
+
+int connectedCount = 0;
+
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       Serial.println("A device is connecting to the ESP32");
 
+      connectedCount = pServer->getConnectedCount() + 1;
+
       // Restart advertising
       BLEDevice::startAdvertising();
+
+      BLE2902* descm = (BLE2902*)inputMouse->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
+      descm->setNotifications(true);
     };
 
     void onDisconnect(BLEServer* pServer) {
       Serial.println("A device has been disconnected from the ESP32");
+
+      connectedCount = pServer->getConnectedCount();
+
+      if (connectedCount == 0) {
+        BLE2902* descm = (BLE2902*)inputMouse->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
+        descm->setNotifications(false);
+      }
     }  
 };
 
@@ -71,6 +93,9 @@ void setupBleTask(void *) {
 
   // Create a bluetooth low energy human interface device
   hid = new BLEHIDDevice(pServer);
+
+  // Associate the report to the input mouse
+  inputMouse = hid->inputReport(1);
 
   // Set manufacturer name
   hid->manufacturer()->setValue("Kelderro");
@@ -96,24 +121,42 @@ void setupBleTask(void *) {
   vTaskDelete(NULL);
 }
 
-void moveMousePointerTask(void *) {
-  const TickType_t xDelay = (10 * 1000) / portTICK_PERIOD_MS;
-
-  for(;;) { // infinite loop
-    Serial.println("Moving mouse!");
-    
-    // Pause the task again for 10 seconds
-    vTaskDelay(xDelay);
+void moveMousePointerTask() {
+  // Only send out a notification when a device is connected
+  if (connectedCount == 0) {
+    Serial.println("No device connected. No need to send out instructions to move the mouse");
+    return;
   }
+  
+  const int mouseOffset = 50;
+  inputMouse_t c{};
+  
+  Serial.print("Moving mouse pointer by " + String(mouseOffset) + " pixels");
+  
+  c.x = mouseOffset;
+  inputMouse->setValue((uint8_t*)&c,sizeof(c));
+  inputMouse->notify();
+
+  delay(500);
+
+  Serial.print(" and back by " + String(mouseOffset) + " pixels!");
+
+  c.x = mouseOffset * -1;
+  inputMouse->setValue((uint8_t*)&c,sizeof(c));
+  inputMouse->notify();
+
+  Serial.println(" Done making the mouse movement");
 }
 
 void setup() {
   Serial.begin(115200);
 
   xTaskCreate(setupBleTask, "Setup BLE", 20000, NULL, 5, NULL);
-  xTaskCreate(moveMousePointerTask, "Move mouse pointer", 1000, NULL, 1, NULL);
+  // xTaskCreate(moveMousePointerTask2, "Move mouse pointer", 500, NULL, 1, NULL);
 }
 
 void loop() {
-  delay(1000);
+  moveMousePointerTask();
+  
+  delay(10000);
 }
