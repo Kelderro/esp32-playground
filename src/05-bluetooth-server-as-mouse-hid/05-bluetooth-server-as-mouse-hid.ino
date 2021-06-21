@@ -56,6 +56,9 @@ static inputMouse_t inputMouse_report{};
 
 int connectedCount = 0;
 
+// Arduino pin number of the blue LED 
+const byte ledPin = A12;
+
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       Serial.println("A device is connecting to the ESP32");
@@ -125,6 +128,27 @@ void setupBleTask(void *) {
   vTaskDelete(NULL);
 }
 
+void updateStatusLedTask(void *) {
+  const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
+  bool ledOn = false;
+  
+  for(;;) { // infinite loop
+
+    if (connectedCount > 0) {
+      // Turn the LED on
+      digitalWrite(ledPin, HIGH);
+    } else {
+      // Blink LED
+      digitalWrite(ledPin, (ledOn) ? LOW : HIGH);
+      
+      ledOn = !ledOn;
+    }
+
+    // Pause the task again for 500ms
+    vTaskDelay(xDelay);
+  }
+}
+
 void moveMousePointerTask() {
   // Only send out a notification when a device is connected
   if (connectedCount == 0) {
@@ -154,6 +178,21 @@ void moveMousePointerTask() {
 
 void setup() {
   Serial.begin(115200);
+
+  // Set the LED pin to OUTPUT as we want to provide a signal to the
+  // pin instead of reading from it (INPUT). If you do not set the mode
+  // the LED may appear dim.
+  pinMode(ledPin, OUTPUT);
+
+  // Create and start the task for blinking the LED light
+  xTaskCreate(
+    updateStatusLedTask,      // Function that should be called
+    "Update status LED task", // Name of the task (for debugging)
+    1000,                     // Stack size (bytes)
+    NULL,                     // Parameter to pass
+    1,                        // Task priority (lower is less priority)
+    NULL                      // Task handle
+  );
 
   xTaskCreate(setupBleTask, "Setup BLE", 20000, NULL, 5, NULL);
 }
