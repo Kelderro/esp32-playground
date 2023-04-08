@@ -1,14 +1,15 @@
+---
 # This is a basic workflow to help you get started with Actions
 
 name: CI
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -19,12 +20,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sketch: [01-blinky, 02-blinky-multi-tasking, 03-bluetooth-server, 04-bluetooth-server-multiconnect, 05-bluetooth-server-as-mouse-hid ]
+        sketch:
+          [
+            01-blinky,
+            02-blinky-multi-tasking,
+            03-bluetooth-server,
+            04-bluetooth-server-multiconnect,
+            05-bluetooth-server-as-mouse-hid,
+          ]
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout
         uses: actions/checkout@master
+
+      - name: Linter
+        uses: arduino/arduino-lint-action@v1
+        with:
+          path: ./src/${{matrix.sketch}}
 
       # We use the arduino/setup-arduino-cli action to install and
       # configure the Arduino CLI on the system.
